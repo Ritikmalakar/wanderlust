@@ -1,0 +1,40 @@
+services:
+
+  mongodb:
+    container_name: mongo
+    image: mongo:7.0
+    volumes:
+      - ./backend/data:/data
+    ports:
+      - "27017:27017"
+
+  redis:
+    container_name: redis
+    image: redis:7
+    ports:
+      - "6379:6379"
+
+  backend:
+    container_name: backend
+    build:
+      context: ./backend
+    env_file:
+      - ./backend/.env.sample
+    depends_on:
+      - mongodb
+      - redis
+    ports:
+      - "8080:8080"
+
+  frontend:
+    container_name: frontend
+    build:
+      context: ./frontend
+    env_file:
+      - ./frontend/.env.sample
+    depends_on:
+      - backend
+    ports:
+      - "5173:5173"
+volumes:
+ data:

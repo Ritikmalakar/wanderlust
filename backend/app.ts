@@ -14,20 +14,30 @@ const app = express();
 
 app.use(
   cors({
-    // added origin
-    origin: [FRONTEND_URL as string, 'http://localhost:3000'],
+    origin: [
+      FRONTEND_URL as string,
+      'http://50.19.7.181:5173'
+    ],
     credentials: true,
   })
 );
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 app.use(compression());
-app.use(session({ secret: 'secret', resave: false, saveUninitialized: false }));
+
+app.use(
+  session({
+    secret: 'secret',
+    resave: false,
+    saveUninitialized: false
+  })
+);
+
 app.use(passport.initialize());
 app.use(passport.session());
 
-// API route
 app.use('/api/posts', postsRouter);
 app.use('/api/auth', authRouter);
 app.use('/api/user', userRouter);
@@ -45,4 +55,5 @@ app.all('*', (req, res) => {
 });
 
 app.use(errorMiddleware);
+
 export default app;

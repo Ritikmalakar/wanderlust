@@ -2,7 +2,11 @@ import { Schema, model, Document } from 'mongoose';
 import JWT from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
 import crypto from 'crypto';
-import { ACCESS_TOKEN_EXPIRES_IN, JWT_SECRET, REFRESH_TOKEN_EXPIRES_IN } from '../config/utils.js';
+import {
+  ACCESS_TOKEN_EXPIRES_IN,
+  JWT_SECRET,
+  REFRESH_TOKEN_EXPIRES_IN,
+} from '../config/utils.js';
 import { Role } from '../types/role-type.js';
 
 interface UserObject extends Document {
@@ -17,6 +21,7 @@ interface UserObject extends Document {
   forgotPasswordToken?: string;
   forgotPasswordExpiry?: Date;
   googleId?: string;
+
   isPasswordCorrect(password: string): Promise<boolean>;
   generateAccessToken(): Promise<string>;
   generateRefreshToken(): Promise<string>;
@@ -33,6 +38,7 @@ const userSchema = new Schema<UserObject>(
       trim: true,
       index: true,
     },
+
     fullName: {
       type: String,
       required: [true, 'Name is required'],
@@ -40,6 +46,7 @@ const userSchema = new Schema<UserObject>(
       maxLength: [15, 'Name should be less than 15 characters'],
       trim: true,
     },
+
     email: {
       type: String,
       unique: true,
@@ -50,51 +57,71 @@ const userSchema = new Schema<UserObject>(
         'Please enter a valid email address',
       ],
     },
+
     password: {
       type: String,
       required: false,
       minLength: [8, 'Password must be at least 8 characters'],
+
+      // Correct password validation
       match: [
-        /^(?=.?[A-Z])(?=.?[a-z])(?=.?[0-9])(?=.?[#?!@$%^&*-]).{8,}$/,
+        /^(?=.*[A-Z])(?=.*[a-z])(?=.*[0-9])(?=.*[#?!@$%^&*-]).{8,}$/,
         'Password must contain at least one uppercase, one lowercase, one digit, and one special character',
       ],
+
       select: false,
     },
+
     avatar: {
       type: String,
       required: false,
     },
+
     role: {
       type: String,
       default: Role.User,
       enum: [Role.User, Role.Admin],
     },
+
     posts: [
       {
         type: Schema.Types.ObjectId,
         ref: 'Post',
       },
     ],
+
     refreshToken: String,
+
     forgotPasswordToken: String,
+
     forgotPasswordExpiry: Date,
+
     googleId: {
       type: String,
       unique: true,
       required: false,
     },
   },
-  { timestamps: true }
+
+  {
+    timestamps: true,
+  }
 );
 
+
+// Password hashing before save
 userSchema.pre('save', async function (next) {
   if (!this.isModified('password') || !this.password) {
     return next();
   }
+
   this.password = await bcrypt.hash(this.password, 10);
+
   next();
 });
 
+
+// Check password
 userSchema.methods.isPasswordCorrect = async function (
   this: UserObject,
   password: string
@@ -102,7 +129,11 @@ userSchema.methods.isPasswordCorrect = async function (
   return await bcrypt.compare(password, this.password || '');
 };
 
-userSchema.methods.generateAccessToken = async function (this: UserObject): Promise<string> {
+
+// Generate Access Token
+userSchema.methods.generateAccessToken = async function (
+  this: UserObject
+): Promise<string> {
   return JWT.sign(
     {
       _id: this._id,
@@ -117,7 +148,11 @@ userSchema.methods.generateAccessToken = async function (this: UserObject): Prom
   );
 };
 
-userSchema.methods.generateRefreshToken = async function (this: UserObject): Promise<string> {
+
+// Generate Refresh Token
+userSchema.methods.generateRefreshToken = async function (
+  this: UserObject
+): Promise<string> {
   return JWT.sign(
     {
       _id: this._id,
@@ -132,13 +167,27 @@ userSchema.methods.generateRefreshToken = async function (this: UserObject): Pro
   );
 };
 
-userSchema.methods.generateResetToken = async function (this: UserObject): Promise<string> {
+
+// Generate Password Reset Token
+userSchema.methods.generateResetToken = async function (
+  this: UserObject
+): Promise<string> {
   const resetToken = crypto.randomBytes(20).toString('hex');
-  this.forgotPasswordToken = crypto.createHash('sha256').update(resetToken).digest('hex');
-  this.forgotPasswordExpiry = new Date(Date.now() + 15 * 60 * 1000); // 15 minutes
+
+  this.forgotPasswordToken = crypto
+    .createHash('sha256')
+    .update(resetToken)
+    .digest('hex');
+
+  this.forgotPasswordExpiry = new Date(
+    Date.now() + 15 * 60 * 1000
+  );
+
   await this.save();
+
   return resetToken;
 };
+
 
 const User = model<UserObject>('User', userSchema);
 
