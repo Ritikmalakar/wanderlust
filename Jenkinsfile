@@ -7,7 +7,7 @@ pipeline {
 
     stages {
 
-        stage("Clone Code from GitHub") {
+        stage("Clone Code from Github") {
             steps {
                 git url: "https://github.com/Ritikmalakar/wanderlust.git",
                     branch: "main"
@@ -24,8 +24,17 @@ pipeline {
 
         stage("OWASP Dependency Check") {
             steps {
-                dependencyCheck additionalArguments: '--scan ./',
-                    odcInstallation: 'dc'
+                withCredentials([
+                    string(
+                        credentialsId: 'NVD API Key',
+                        variable: 'NVD_API_KEY'
+                    )
+                ]) {
+                    dependencyCheck(
+                        additionalArguments: "--scan ./ --nvdApiKey ${NVD_API_KEY}",
+                        odcInstallation: 'dc'
+                    )
+                }
 
                 dependencyCheckPublisher pattern: '**/dependency-check-report.xml'
             }
@@ -41,7 +50,7 @@ pipeline {
 
         stage("Trivy File System Scan") {
             steps {
-                sh "trivy fs --format table -o trivy-fs-report.html ."
+                sh "trivy fs --format table -o trivy-fs-report.txt ."
             }
         }
 
