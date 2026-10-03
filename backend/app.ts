@@ -16,7 +16,7 @@ app.use(
   cors({
     origin: [
       FRONTEND_URL as string,
-      'http://50.19.7.181:5173'
+      'http://107.22.56.149:5173'
     ],
     credentials: true,
   })
